@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test</title>
+    <div id="template">
+        <h1 temp_name="title">
+            
+        </h1>
+        <h2 temp_name="subtitle">
+            
+        </h2>
+        <button temp_func="countUp" temp_dest_id="counter" temp_name="counter">
+            Click Me
+        </button>
+    </div>
+</head>
+<body>
+    <div id="root">
+        
+    </div>
+    
+    <script src="/dist/index.js"></script>
+    <script>
+    let templates = []
+    var i = 0;
+    function countUp() {
+        return i += 1;
+    }
+    makeTemplate(templates, "template", "root")
+    templates[0].render({title: "Le Title has arrived", subtitle:"Here is the subtitle", counter: "This is a counter"}, {countUp: countUp})
+</script>
+</body>
+</html>

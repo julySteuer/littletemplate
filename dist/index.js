@@ -15,27 +15,77 @@ class Template {
         this.root = root;
         this.url = url;
     }
-    render(args) {
-        let elems = this.templateNode;
-        for (var i = 0; i < elems.children.length; i++) {
-            if (elems.children[i].hasAttribute('temp_name')) {
-                let tempName = elems.children[i].getAttribute('temp_name');
-                if (!args.hasOwnProperty(tempName)) {
-                    console.error(`Error: args does not contain ${tempName}`);
+    /*
+                let tempName = elems.children[i].getAttribute('temp_name')!
+                if (!tempArgs.hasOwnProperty(tempName)) {
+                    console.error(`Error: args does not contain ${tempName}`)
                 }
-                elems.children[i].innerHTML = args[tempName];
-            }
+                elems.children[i].innerHTML = tempArgs[tempName]
+                name_element.set(tempName, elems.children[i])
+    */
+    render(tempArgs, funcArgs) {
+        let elems = this.templateNode;
+        let elements = new Map();
+        let actionElements = [];
+        for (var i = 0; i < elems.children.length; i++) {
+            let elem = elems.children[i];
+            checkIfNormal(elem, elements);
+            checkIfAction(elem, actionElements);
         }
+        elements.forEach(elem => {
+            executeNormal(elem, tempArgs);
+        });
+        actionElements.forEach(elem => {
+            executeAction(elem, funcArgs, elements);
+        });
+        this.childElements = elements;
         this.root.appendChild(this.templateNode);
     }
-    renderFromRemote(options) {
+    renderFromRemote(options, funcArgs) {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.url != null) {
                 let data = yield fetch(this.url, options);
-                this.render(yield data.json());
+                this.render(yield data.json(), funcArgs);
             }
         });
     }
+    readFromElement(name) {
+        var _a;
+        let t = (_a = this.childElements) === null || _a === void 0 ? void 0 : _a.get(name);
+        return t.innerText;
+    }
+}
+function checkIfAction(child, actionElements) {
+    if (child.hasAttribute('temp_func')) {
+        if (child.hasAttribute('temp_dest_id')) {
+            actionElements.push(child);
+        }
+    }
+}
+function checkIfNormal(child, elements) {
+    if (child.hasAttribute('temp_name')) {
+        elements.set(child.getAttribute('temp_name'), child);
+    }
+}
+function executeAction(child, funcArgs, templateElements) {
+    let destName = child.getAttribute('temp_dest_id');
+    let dest = templateElements.get(destName);
+    let functionName = child.getAttribute('temp_func');
+    child.onclick = () => {
+        let data = funcArgs[functionName]();
+        console.log(data);
+        if (data == null) {
+            console.warn(`Warning: Function ${functionName} does not return anything`);
+        }
+        dest.innerText = data;
+    };
+}
+function executeNormal(child, tempArgs) {
+    let tempName = child.getAttribute('temp_name');
+    if (!tempArgs.hasOwnProperty(tempName)) {
+        console.error(`Error: args does not contain ${tempName}`);
+    }
+    child.innerHTML = tempArgs[tempName];
 }
 function makeTemplate(templates, templateId, rootName, url) {
     let root = document.getElementById(rootName);
