@@ -7,14 +7,17 @@
     <title>Test</title>
     <div id="template">
         <h1 temp_name="title">
-            
+
         </h1>
-        <h2 temp_name="subtitle">
-            
-        </h2>
-        <button temp_func="countUp" temp_dest_id="counter" temp_name="counter">
-            Click Me
-        </button>
+        <h1 temp_name="id">
+
+        </h1>
+        <p temp_name="userId">
+
+        </p>
+        <p temp_name="body">
+
+        </p>
     </div>
 </head>
 <body>
@@ -24,13 +27,8 @@
     
     <script src="/dist/index.js"></script>
     <script>
-    let templates = []
-    var i = 0;
-    function countUp() {
-        return i += 1;
-    }
-    makeTemplate(templates, "template", "root")
-    templates[0].render({title: "Le Title has arrived", subtitle:"Here is the subtitle", counter: "This is a counter"}, {countUp: countUp})
+    let template = makeTemplate("template", "root", "https://jsonplaceholder.typicode.com/posts")
+    template.renderFromRemote(null, null, null, null, many = true)
 </script>
 </body>
 </html>

@@ -15,37 +15,43 @@ class Template {
         this.root = root;
         this.url = url;
     }
-    /*
-                let tempName = elems.children[i].getAttribute('temp_name')!
-                if (!tempArgs.hasOwnProperty(tempName)) {
-                    console.error(`Error: args does not contain ${tempName}`)
-                }
-                elems.children[i].innerHTML = tempArgs[tempName]
-                name_element.set(tempName, elems.children[i])
-    */
-    render(tempArgs, funcArgs) {
-        let elems = this.templateNode;
+    render(tempArgs, funcArgs, recvArgs) {
+        let elems = this.templateNode.cloneNode(true);
+        elems.id = Math.floor(Math.random() * 1000000000).toString() + "_template";
         let elements = new Map();
         let actionElements = [];
+        let recivers = new Map();
         for (var i = 0; i < elems.children.length; i++) {
             let elem = elems.children[i];
             checkIfNormal(elem, elements);
             checkIfAction(elem, actionElements);
+            checkIfReciver(elem, recvArgs, recivers);
         }
         elements.forEach(elem => {
             executeNormal(elem, tempArgs);
         });
         actionElements.forEach(elem => {
-            executeAction(elem, funcArgs, elements);
+            executeAction(elem, funcArgs, elements, recivers);
         });
         this.childElements = elements;
-        this.root.appendChild(this.templateNode);
+        this.root.appendChild(elems);
     }
-    renderFromRemote(options, funcArgs) {
+    renderFromRemote(args = null, options = null, funcArgs = null, recvArgs = null, many = undefined) {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.url != null) {
+                if (many == null) {
+                    many = false;
+                }
                 let data = yield fetch(this.url, options);
-                this.render(yield data.json(), funcArgs);
+                let jsonData = yield data.json();
+                if (many) {
+                    jsonData.forEach((elem) => {
+                        this.render(Object.assign(Object.assign({}, elem), args), funcArgs, recvArgs);
+                    });
+                }
+                else {
+                    this.render(Object.assign(Object.assign({}, jsonData), args), funcArgs, recvArgs);
+                }
             }
         });
     }
@@ -56,10 +62,8 @@ class Template {
     }
 }
 function checkIfAction(child, actionElements) {
-    if (child.hasAttribute('temp_func')) {
-        if (child.hasAttribute('temp_dest_id')) {
-            actionElements.push(child);
-        }
+    if (child.hasAttribute('temp_func') && child.hasAttribute('temp_dest_id')) {
+        actionElements.push(child);
     }
 }
 function checkIfNormal(child, elements) {
@@ -67,17 +71,22 @@ function checkIfNormal(child, elements) {
         elements.set(child.getAttribute('temp_name'), child);
     }
 }
-function executeAction(child, funcArgs, templateElements) {
+function checkIfReciver(child, recvArgs, recivers) {
+    if (child.hasAttribute('temp_recv') && child.hasAttribute('temp_name')) {
+        recivers.set(child.getAttribute('temp_name'), recvArgs[child.getAttribute('temp_recv')]);
+    }
+}
+function executeAction(child, funcArgs, templateElements, recivers) {
     let destName = child.getAttribute('temp_dest_id');
+    let destFunction = recivers.get(destName);
     let dest = templateElements.get(destName);
     let functionName = child.getAttribute('temp_func');
     child.onclick = () => {
-        let data = funcArgs[functionName]();
-        console.log(data);
+        let data = funcArgs[functionName](dest.innerText);
         if (data == null) {
             console.warn(`Warning: Function ${functionName} does not return anything`);
         }
-        dest.innerText = data;
+        dest.innerText = destFunction == null ? data : destFunction(data);
     };
 }
 function executeNormal(child, tempArgs) {
@@ -85,13 +94,15 @@ function executeNormal(child, tempArgs) {
     if (!tempArgs.hasOwnProperty(tempName)) {
         console.error(`Error: args does not contain ${tempName}`);
     }
-    child.innerHTML = tempArgs[tempName];
+    else {
+        child.innerHTML = tempArgs[tempName];
+    }
 }
-function makeTemplate(templates, templateId, rootName, url) {
+function makeTemplate(templateId, rootName, url) {
     let root = document.getElementById(rootName);
     let template = document.getElementById(templateId);
     let cloned_template = template.cloneNode(true);
     template.remove();
     let newTemplate = new Template(templateId, cloned_template, root, url);
-    templates.push(newTemplate);
+    return newTemplate;
 }
